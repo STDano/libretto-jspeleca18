@@ -1,82 +1,65 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Book;
-
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illumunate\Http\RedirectResponse;
 
 class BookController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(): View
+    public function index()
     {
-        return view('books.books', ['books' => Book::all()->paginate(5)]);
+        return Book::with('author', 'genres')->get();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): View
-    {
-        return view('books.create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required',
-            'author_id' => 'required|exists: authors.id',
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author_id' => 'required|exists:authors,id',
             'genres' => 'required|array',
-            'genres.*' => 'exists: genres.id',
+            'genres.*' => 'exists:genres,id',
         ]);
 
-        $book = Book::create(attributes: [
-            'title' => $request->title,
-            'author_id' => $request->author_id,
+        $book = Book::create([
+            'title' => $validated['title'],
+            'author_id' => $validated['author_id'],
         ]);
 
-        $book->genres()->attach($request->genres);
+        $book->genres()->attach($validated['genres']);
 
-        return redirect('books.books')->withSuccss('Book added successfully.');
+        return response()->json($book->load('author', 'genres'), 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Book $book)
     {
-        return view('books.show', compact('book'));
+        return $book->load('author', 'genres');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Book $book)
-    {
-        return view('books.edit', compact('book'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Book $book)
     {
-        $book->update($request->validated());
+        $validated = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'author_id' => 'sometimes|exists:authors,id',
+            'genres' => 'sometimes|array',
+            'genres.*' => 'exists:genres,id',
+        ]);
+
+        $book->update($validated);
+
+        if (isset($validated['genres'])) {
+            $book->genres()->sync($validated['genres']);
+        }
+
+        return $book->load('author', 'genres');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Book $book)
     {
-        //
+        $book->genres()->detach();
+        $book->delete();
+
+        return response()->json(null, 204);
     }
 }
