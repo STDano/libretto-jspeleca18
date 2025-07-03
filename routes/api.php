@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('books', BookController::class);
-    Route::post('genres', [GenreController::class, 'store']);
-    Route::post('authors', [AuthorController::class, 'store']);
+    Route::apiResource('genres', GenreController::class);
+    Route::apiResource('authors', AuthorController::class);
 });
 
 Route::post('/register', [UserController::class, 'register']);

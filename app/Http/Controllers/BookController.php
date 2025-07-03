@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
@@ -10,7 +10,8 @@ class BookController extends Controller
 {
     public function index()
     {
-        return Book::with('author', 'genres')->get();
+        $books = Book::with('author', 'genres')->get();
+        return view('books.index', compact('books'));
     }
 
     public function store(Request $request)
