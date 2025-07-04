@@ -3,39 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use App\Models\Author;
+use App\Models\Genre;
 
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Illumunate\Http\RedirectResponse;
+use Illuminate\Http\RedirectResponse;
 
 class BookController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(): View
     {
-        return view('books.books', ['books' => Book::all()->paginate(5)]);
+        return view('books.index', ['books' => Book::paginate(5)]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(): View
     {
-        return view('books.create');
+        $authors = Author::all();
+        $genres = Genre::all();
+    
+        return view('books.create', compact('authors', 'genres'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $request->validate([
             'title' => 'required',
-            'author_id' => 'required|exists: authors.id',
+            'author_id' => 'required|exists:authors,id',
             'genres' => 'required|array',
-            'genres.*' => 'exists: genres.id',
+            'genres.*' => 'exists:genres,id',
         ]);
 
         $book = Book::create(attributes: [
@@ -45,38 +41,43 @@ class BookController extends Controller
 
         $book->genres()->attach($request->genres);
 
-        return redirect('books.books')->withSuccss('Book added successfully.');
+        return redirect('books')->withSuccss('Book added successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Book $book)
     {
         return view('books.show', compact('book'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
+
     public function edit(Book $book)
     {
-        return view('books.edit', compact('book'));
+        $authors = Author::all();
+        $genres = Genre::all();
+    
+        return view('books.edit', compact('book', 'authors', 'genres'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Book $book)
     {
-        $book->update($request->validated());
+        $validatedData = $request->validate([
+            'title' => 'required',
+            'author_id' => 'required|exists:authors,id',
+            'genres' => 'required|array',
+            'genres.*' => 'exists:genres,id',
+        ]);
+    
+        $book->update($validatedData);
+    
+        return redirect()->route('books.index')
+            ->withSuccess('Book updated successfully');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(request $request, Book $book)
     {
-        //
+        $book->delete();
+
+        return redirect()->route('books.index')
+            ->withSuccess('Book deleted successfully');
     }
 }
